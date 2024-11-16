@@ -1,6 +1,9 @@
-# Contrôle des Ampoules LED avec Reconnaissance Vocale
+# dire la couleur
 
-Ce projet permet de contrôler des ampoules LED via des commandes vocales en utilisant Python. Les commandes vocales sont reconnues en français, et les couleurs des ampoules LED sont changées en fonction de la commande donnée.
+en Python. 
+
+
+Les commandes vocales sont reconnues en français, et les couleurs des ampoules LED sont changées en fonction de la commande donnée.
 
 ## Prérequis
 
@@ -9,4 +12,5 @@ Assurez-vous d'avoir installé les bibliothèques nécessaires. Vous pouvez les 
 ```bash
 pip install -r requirements.txt
 
+# dire-couleur
 # dire-couleur
