@@ -1,4 +1,9 @@
 import pychromecast
+import kivy
+from kivy.app import App
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.button import Button
+
 import speech_recognition as sr
 from flux_led import WifiLedBulb
 
@@ -117,16 +122,28 @@ def change_color(bulb, color_name):
         print(f"L'ampoule a été changée en {color_name}.")
     else:
         print("Couleur non reconnue.")
+def find_chromecast_by_name(friendly_name):
+    chromecasts, browser = pychromecast.get_listed_chromecasts(friendly_names=[friendly_name])
+    if chromecasts:
+        cast = chromecasts[0]
+        cast.wait()
+        return cast
+    else:
+        print(f"Aucun appareil Chromecast trouvé avec le nom : {friendly_name}")
+        return None
+
 
 # Fonction pour annoncer la couleur via Google Nest Mini
 def announce_color(color_name):
     # Connexion à Chromecast via l'adresse IP du Nest Mini
-    cast = pychromecast.Chromecast('192.168.1.10')
+    chromecast_name = "Bureau"  # Remplacez par le nom convivial de votre appareil
+    cast = find_chromecast_by_name(chromecast_name)
+
 
     # Annonce de la couleur via Google Nest Mini
     if cast:
         cast.wait()
-        tts_url = f"http://translate.google.com/translate_tts?ie=UTF-8&q=La%20couleur%20est%20{color_name}&tl=fr&client=tw-ob"
+        tts_url = f"http://translate.google.com/translate_tts?ie=UTF-8&q=en%20{color_name}&tl=fr&client=tw-ob"
         cast.media_controller.play_media(tts_url, 'audio/mp3')
         cast.media_controller.block_until_active()
         print(f"Annonce sur Nest Mini : La couleur est {color_name}")
@@ -151,8 +168,42 @@ def recognize_speech_and_control_bulb():
             print("Je n'ai pas compris la commande.")
         except sr.RequestError as e:
             print(f"Erreur de la reconnaissance vocale ; {e}")
+class ColorApp(App):
+    def build(self):
+        layout = GridLayout(cols=10)  # Définir le nombre de colonnes pour les boutons
+        for color_name in colors:
+            btn = Button(text=color_name.capitalize(), background_color=[c/255.0 for c in colors[color_name]] + [1])
+            btn.bind(on_press=self.on_button_press)
+            layout.add_widget(btn)
+        return layout
 
-# Exécution de la fonction de reconnaissance vocale en boucle
-while True:
-    recognize_speech_and_control_bulb()
+    def on_button_press(self, instance):
+        color_name = instance.text.lower()
+        change_color(bulb, color_name)
+        announce_color(color_name)
 
+
+if __name__ == "__main__":
+    recognizer = sr.Recognizer()
+
+    with sr.Microphone() as source:
+        print("Dites 'toutes les couleurs' pour dire les couleurs ou 'voir les vouleur' pour plus d'options.")
+        audio = recognizer.listen(source)
+        try:
+            choice = recognizer.recognize_google(audio, language="fr-FR")
+            print(f"Vous avez dit : {choice}")
+
+            if choice == 'toutes les couleurs':
+                chromecast_name = "Bureau"  # Remplacez par le nom convivial de votre appareil
+                cast = find_chromecast_by_name(chromecast_name)
+                if cast:
+                    while True:
+                        recognize_speech_and_control_bulb()
+            elif choice == "voir les couleurs":
+                ColorApp().run()
+            else:
+                print("Choix invalide. Veuillez relancer le programme et dire '1' ou '2'.")
+        except sr.UnknownValueError:
+            print("Je n'ai pas compris le choix.")
+        except sr.RequestError as e:
+            print(f"Erreur de la reconnaissance vocale ; {e}")
